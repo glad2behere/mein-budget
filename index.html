@@ -133,21 +133,44 @@
         calculate();
     }
 
-    function exportData() {
-        const month = document.getElementById('currentMonth').value;
-        const start = document.getElementById('startBudget').value || 0;
-        const rest = document.getElementById('remaining').innerText;
-        let text = `BUDGET_DATA|${month}|${start}\n`; // Header für Import-Logik
-        document.querySelectorAll('.expense-row').forEach(row => {
-            text += `${row.querySelector('.desc').value || "Unbekannt"};${row.querySelector('.amount').value || 0}\n`;
-        });
+ function exportData() {
+    const month = document.getElementById('currentMonth').value;
+    const start = document.getElementById('startBudget').value || 0;
+    const rest = document.getElementById('remaining').innerText;
+    const date = new Date().toLocaleDateString('de-DE');
+
+    // 1. Versteckter Header für den Import (Erste Zeile)
+    let text = `###CONFIG|${month}|${start}###\n`;
+    
+    // 2. Schönes Layout für den Menschen
+    text += `==========================================\n`;
+    text += `   BUDGET BERICHT - ${month.toUpperCase()}\n`;
+    text += `   Erstellt am: ${date}\n`;
+    text += `==========================================\n\n`;
+    text += ` STARTBUDGET:   ${parseFloat(start).toFixed(2)} €\n`;
+    text += `------------------------------------------\n`;
+    text += ` POSTEN          | BETRAG\n`;
+    text += `------------------------------------------\n`;
+
+    document.querySelectorAll('.expense-row').forEach(row => {
+        const desc = (row.querySelector('.desc').value || "Unbenannt").padEnd(15);
+        const amount = (parseFloat(row.querySelector('.amount').value) || 0).toFixed(2).padStart(8);
+        text += ` ${desc} | ${amount} €\n`;
         
-        const blob = new Blob(["\uFEFF" + text], { type: 'text/plain;charset=utf-8' });
-        const a = document.createElement('a');
-        a.href = URL.createObjectURL(blob);
-        a.download = `Budget_${month}_${new Date().getFullYear()}.txt`;
-        a.click();
-    }
+        // Versteckte Daten für Import am Zeilenende (unsichtbar nach viel Platz)
+        text += `                                          #DATA:${row.querySelector('.desc').value};${row.querySelector('.amount').value}\n`;
+    });
+
+    text += `------------------------------------------\n`;
+    text += ` RESTBETRAG:     ${rest} €\n`;
+    text += `==========================================\n`;
+    
+    const blob = new Blob(["\uFEFF" + text], { type: 'text/plain;charset=utf-8' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `Budget_${month}_${new Date().getFullYear()}.txt`;
+    a.click();
+}
 
     function importData(event) {
         const file = event.target.files[0];
