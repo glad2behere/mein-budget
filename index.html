@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Budget Manager Pro</title>
+    <title>Budget Manager Pro CSV</title>
 
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>💰</text></svg>">
     <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 rx=%2220%22 fill=%22%231a73e8%22/><text xml:space=%22preserve%22 text-anchor=%22middle%22 font-family=%22sans-serif%22 font-size=%2260%22 y=%2272%22 x=%2250%22 fill=%22white%22 font-weight=%22bold%22>€</text></svg>">
@@ -39,7 +39,6 @@
         
         .progress-container { width: 100%; height: 12px; background: #eee; border-radius: 6px; margin: 15px 0; overflow: hidden; }
         #progress-bar { height: 100%; width: 100%; background: var(--success); transition: width 0.5s, background 0.5s; }
-        [data-theme="dark"] .progress-container { background: #333; }
 
         .row { display: flex; gap: 8px; margin-bottom: 10px; align-items: center; }
         .row input[type="text"] { flex: 3; }
@@ -109,9 +108,9 @@
     <div class="modal-content" onclick="event.stopPropagation()">
         <h3 style="margin-top:0">Einstellungen</h3>
         <button class="btn" style="background:var(--secondary-btn); color:var(--text)" onclick="toggleTheme()">Theme wechseln</button>
-        <button class="btn" style="background: #34a853; color:white;" onclick="exportData()">Export (.txt)</button>
-        <button class="btn" style="background: #fbbc04; color:black;" onclick="document.getElementById('fileImport').click()">Import (.txt)</button>
-        <input type="file" id="fileImport" accept=".txt" onchange="importData(event)">
+        <button class="btn" style="background: #34a853; color:white;" onclick="exportCSV()">Als CSV exportieren</button>
+        <button class="btn" style="background: #fbbc04; color:black;" onclick="document.getElementById('fileImport').click()">CSV Importieren</button>
+        <input type="file" id="fileImport" accept=".txt,.csv" onchange="importCSV(event)">
         <button class="btn" style="background: var(--danger); color:white; margin-top:20px" onclick="clearAll()">Monat zurücksetzen</button>
         <button class="btn" style="background:none; color:var(--secondary-text)" onclick="toggleModal(false)">Schließen</button>
     </div>
@@ -173,14 +172,14 @@
         const getItems = (id) => Array.from(document.querySelectorAll(`#${id} .row`)).map(r => ({
             t: r.querySelector('.desc').value, v: r.querySelector('.amount').value
         }));
-        const data = JSON.parse(localStorage.getItem('budget_data_v5') || "{}");
+        const data = JSON.parse(localStorage.getItem('budget_csv_v1') || "{}");
         data[month] = { inc: getItems('incomeList'), exp: getItems('expenseList') };
-        localStorage.setItem('budget_data_v5', JSON.stringify(data));
+        localStorage.setItem('budget_csv_v1', JSON.stringify(data));
     }
 
     function loadFromStorage() {
         const month = document.getElementById('currentMonth').value;
-        const data = JSON.parse(localStorage.getItem('budget_data_v5') || "{}")[month];
+        const data = JSON.parse(localStorage.getItem('budget_csv_v1') || "{}")[month];
         document.getElementById('incomeList').innerHTML = "";
         document.getElementById('expenseList').innerHTML = "";
         if (data) {
@@ -192,44 +191,62 @@
         calculate();
     }
 
-    function exportData() {
+    // EXPORT ALS CSV
+    function exportCSV() {
         const month = document.getElementById('currentMonth').value;
-        let text = `###CONFIG_V5|${month}###\n`;
-        text += `EINNAHMEN:\n`;
+        // Metadaten für App-Import in der ersten Zeile
+        let csvContent = `###APP_DATA|${month}###\n`;
+        // CSV Header für Excel
+        csvContent += `Typ;Bezeichnung;Betrag\n`;
+        
         document.querySelectorAll('#incomeList .row').forEach(r => {
-            text += `${r.querySelector('.desc').value};${r.querySelector('.amount').value} #INC\n`;
+            csvContent += `Einnahme;${r.querySelector('.desc').value || "Unbenannt"};${r.querySelector('.amount').value || 0}\n`;
         });
-        text += `AUSGABEN:\n`;
         document.querySelectorAll('#expenseList .row').forEach(r => {
-            text += `${r.querySelector('.desc').value};${r.querySelector('.amount').value} #EXP\n`;
+            csvContent += `Ausgabe;${r.querySelector('.desc').value || "Unbenannt"};${r.querySelector('.amount').value || 0}\n`;
         });
-        const blob = new Blob(["\uFEFF" + text], { type: 'text/plain;charset=utf-8' });
+
+        const blob = new Blob(["\uFEFF" + csvContent], { type: 'text/csv;charset=utf-8' });
         const a = document.createElement('a');
         a.href = URL.createObjectURL(blob);
-        a.download = `Budget_V5_${month}.txt`;
+        a.download = `Budget_${month}.csv`;
         a.click();
     }
 
-    function importData(event) {
+    // IMPORT VON CSV
+    function importCSV(event) {
         const file = event.target.files[0];
         if (!file) return;
         const reader = new FileReader();
         reader.onload = function(e) {
-            const lines = e.target.result.replace(/^\uFEFF/, "").split('\n');
-            if (!lines[0].includes("###CONFIG_V5")) { alert("Falsches Format!"); return; }
-            document.getElementById('currentMonth').value = lines[0].split('|')[1].replace('###','');
+            const content = e.target.result.replace(/^\uFEFF/, "").trim();
+            const lines = content.split('\n');
+            
+            if (!lines[0].includes("###APP_DATA")) {
+                alert("Keine gültige Budget-CSV!");
+                return;
+            }
+
+            const month = lines[0].split('|')[1].replace('###','');
+            document.getElementById('currentMonth').value = month;
             document.getElementById('incomeList').innerHTML = "";
             document.getElementById('expenseList').innerHTML = "";
-            lines.forEach(l => {
-                if (l.includes("#INC")) {
-                    const d = l.split("#INC")[0].split(';');
-                    addRow('incomeList', d[0], d[1]);
-                } else if (l.includes("#EXP")) {
-                    const d = l.split("#EXP")[0].split(';');
-                    addRow('expenseList', d[0], d[1]);
-                }
-            });
-            calculate(); toggleModal(false);
+
+            // Ab Zeile 3 starten (Zeile 1=Meta, Zeile 2=Header)
+            for (let i = 2; i < lines.length; i++) {
+                const parts = lines[i].split(';');
+                if (parts.length < 3) continue;
+                
+                const typ = parts[0].trim();
+                const desc = parts[1].trim();
+                const val = parts[2].trim();
+
+                if (typ === "Einnahme") addRow('incomeList', desc, val);
+                else if (typ === "Ausgabe") addRow('expenseList', desc, val);
+            }
+            calculate();
+            toggleModal(false);
+            alert("Daten für " + month + " importiert!");
         };
         reader.readAsText(file);
     }
@@ -237,9 +254,9 @@
     function clearAll() {
         if (confirm("Monat wirklich leeren?")) {
             const month = document.getElementById('currentMonth').value;
-            const data = JSON.parse(localStorage.getItem('budget_data_v5') || "{}");
+            const data = JSON.parse(localStorage.getItem('budget_csv_v1') || "{}");
             delete data[month];
-            localStorage.setItem('budget_data_v5', JSON.stringify(data));
+            localStorage.setItem('budget_csv_v1', JSON.stringify(data));
             location.reload();
         }
     }
