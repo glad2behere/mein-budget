@@ -13,27 +13,16 @@
     <meta name="theme-color" id="theme-color-meta" content="#1a73e8">
 
     <style>
-        /* CSS Variablen für einfaches Theme-Switching */
         :root {
-            --bg: #f0f2f5;
-            --card: #ffffff;
-            --text: #1a1a1a;
-            --primary: #1a73e8;
-            --danger: #d93025;
-            --input-border: #cccccc;
-            --secondary-btn: #f1f3f4;
-            --secondary-text: #5f6368;
+            --bg: #f0f2f5; --card: #ffffff; --text: #1a1a1a; --primary: #1a73e8;
+            --danger: #d93025; --success: #34a853; --input-border: #cccccc;
+            --secondary-btn: #f1f3f4; --secondary-text: #5f6368;
         }
 
         [data-theme="dark"] {
-            --bg: #121212;
-            --card: #1e1e1e;
-            --text: #e0e0e0;
-            --primary: #8ab4f8;
-            --danger: #f28b82;
-            --input-border: #444444;
-            --secondary-btn: #333333;
-            --secondary-text: #aaaaaa;
+            --bg: #121212; --card: #1e1e1e; --text: #e0e0e0; --primary: #8ab4f8;
+            --danger: #f28b82; --success: #81c995; --input-border: #444444;
+            --secondary-btn: #333333; --secondary-text: #aaaaaa;
         }
 
         body { font-family: sans-serif; background-color: var(--bg); color: var(--text); padding: 15px; display: flex; justify-content: center; margin: 0; transition: background 0.3s; }
@@ -45,33 +34,32 @@
         .settings-btn { background: none; border: none; font-size: 1.5rem; cursor: pointer; color: var(--text); }
 
         .input-group { margin-bottom: 15px; }
-        label { display: block; margin-bottom: 5px; font-weight: bold; font-size: 0.85rem; }
+        label { display: block; margin-bottom: 8px; font-weight: bold; font-size: 0.9rem; color: var(--primary); }
         input, select { width: 100%; padding: 12px; border: 1px solid var(--input-border); border-radius: 10px; background: var(--card); color: var(--text); box-sizing: border-box; font-size: 16px; outline: none; }
         
-        /* Fortschrittsbalken Style */
-        .progress-container { width: 100%; height: 12px; background: #eee; border-radius: 6px; margin: 10px 0; overflow: hidden; }
-        #progress-bar { height: 100%; width: 100%; background: #34a853; transition: width 0.5s, background 0.5s; }
+        .progress-container { width: 100%; height: 12px; background: #eee; border-radius: 6px; margin: 15px 0; overflow: hidden; }
+        #progress-bar { height: 100%; width: 100%; background: var(--success); transition: width 0.5s, background 0.5s; }
         [data-theme="dark"] .progress-container { background: #333; }
 
-        .expense-row { display: flex; gap: 8px; margin-bottom: 10px; align-items: center; }
-        .expense-row input[type="text"] { flex: 3; }
-        .expense-row input[type="number"] { flex: 2; }
+        .row { display: flex; gap: 8px; margin-bottom: 10px; align-items: center; }
+        .row input[type="text"] { flex: 3; }
+        .row input[type="number"] { flex: 2; }
 
-        .btn-delete { background: var(--danger); color: white; border: none; border-radius: 8px; padding: 10px; cursor: pointer; opacity: 0.8; }
+        .btn-delete { background: var(--danger); color: white; border: none; border-radius: 8px; padding: 10px; cursor: pointer; font-weight: bold; }
 
-        .result-box { background: var(--secondary-btn); padding: 15px; border-radius: 12px; margin-top: 10px; }
-        .result { font-size: 1.1rem; font-weight: bold; text-align: right; }
+        .summary-box { background: var(--secondary-btn); padding: 15px; border-radius: 12px; margin: 15px 0; display: flex; justify-content: space-between; font-size: 0.9rem; }
+        .result-box { background: var(--primary); color: white; padding: 15px; border-radius: 12px; margin-top: 10px; text-align: center; }
+        .result { font-size: 1.3rem; font-weight: bold; }
 
-        .btn { width: 100%; padding: 14px; border: none; border-radius: 10px; cursor: pointer; font-size: 1rem; font-weight: bold; margin-top: 10px; transition: opacity 0.2s; }
-        .btn-add { background: var(--primary); color: white; }
-        .btn-export { background: #34a853; color: white; }
-        .btn-clear { background: var(--secondary-btn); color: var(--secondary-text); margin-top: 20px; font-size: 0.8rem; }
+        .btn { width: 100%; padding: 12px; border: none; border-radius: 10px; cursor: pointer; font-size: 0.9rem; font-weight: bold; margin-top: 8px; }
+        .btn-add-inc { background: var(--success); color: white; }
+        .btn-add-exp { background: var(--primary); color: white; }
         
-        /* Modal für Einstellungen */
-        #settings-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); justify-content: center; align-items: center; z-index: 100; }
-        .modal-content { background: var(--card); padding: 25px; border-radius: 16px; width: 80%; max-width: 300px; text-align: center; }
+        #settings-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); justify-content: center; align-items: center; z-index: 100; }
+        .modal-content { background: var(--card); padding: 25px; border-radius: 16px; width: 85%; max-width: 320px; }
 
         #fileImport { display: none; }
+        hr { border: 0; border-top: 1px solid var(--input-border); margin: 20px 0; }
     </style>
 </head>
 <body>
@@ -83,43 +71,49 @@
     </div>
     
     <div class="input-group">
-        <label>Monat & Startbetrag (€)</label>
-        <div style="display: flex; gap: 10px;">
-            <select id="currentMonth" onchange="loadFromStorage()">
-                <option>Januar</option><option>Februar</option><option>März</option>
-                <option>April</option><option>Mai</option><option>Juni</option>
-                <option>Juli</option><option>August</option><option>September</option>
-                <option>Oktober</option><option>November</option><option>Dezember</option>
-            </select>
-            <input type="number" id="startBudget" placeholder="0" oninput="calculate()">
-        </div>
+        <label>Monat wählen</label>
+        <select id="currentMonth" onchange="loadFromStorage()">
+            <option>Januar</option><option>Februar</option><option>März</option>
+            <option>April</option><option>Mai</option><option>Juni</option>
+            <option>Juli</option><option>August</option><option>September</option>
+            <option>Oktober</option><option>November</option><option>Dezember</option>
+        </select>
     </div>
+
+    <label>Einnahmen</label>
+    <div id="incomeList"></div>
+    <button class="btn btn-add-inc" onclick="addRow('incomeList')">+ Einnahme hinzufügen</button>
+
+    <hr>
+
+    <label>Ausgaben</label>
+    <div id="expenseList"></div>
+    <button class="btn btn-add-exp" onclick="addRow('expenseList')">+ Ausgabe hinzufügen</button>
 
     <div class="progress-container">
         <div id="progress-bar"></div>
     </div>
 
-    <div class="result-box">
-        <div class="result">Rest: <span id="remaining">0.00</span> €</div>
+    <div class="summary-box">
+        <span>Einnahmen: <b id="totalInc">0.00</b> €</span>
+        <span>Ausgaben: <b id="totalExp">0.00</b> €</span>
     </div>
 
-    <hr style="border:0; border-top:1px solid var(--input-border); margin: 20px 0;">
-    
-    <div id="expenseList"><label>Ausgaben</label></div>
-
-    <button class="btn btn-add" onclick="addNewField()">+ Ausgabe hinzufügen</button>
-
-    <button class="btn btn-export" onclick="exportData()">Als .txt exportieren</button>
-    <button class="btn btn-clear" onclick="clearAll()">Monat zurücksetzen</button>
+    <div class="result-box" id="resBox">
+        <div>Übriges Budget</div>
+        <div class="result"><span id="remaining">0.00</span> €</div>
+    </div>
 </div>
 
 <div id="settings-modal" onclick="toggleModal(false)">
     <div class="modal-content" onclick="event.stopPropagation()">
-        <h3>Einstellungen</h3>
-        <button class="btn" id="theme-toggle" onclick="toggleTheme()">Dark Mode: AUS</button>
-        <button class="btn" style="background: #fbbc04; color:black;" onclick="document.getElementById('fileImport').click()">TXT Importieren</button>
+        <h3 style="margin-top:0">Einstellungen</h3>
+        <button class="btn" style="background:var(--secondary-btn); color:var(--text)" onclick="toggleTheme()">Theme wechseln</button>
+        <button class="btn" style="background: #34a853; color:white;" onclick="exportData()">Export (.txt)</button>
+        <button class="btn" style="background: #fbbc04; color:black;" onclick="document.getElementById('fileImport').click()">Import (.txt)</button>
         <input type="file" id="fileImport" accept=".txt" onchange="importData(event)">
-        <button class="btn btn-clear" onclick="toggleModal(false)">Schließen</button>
+        <button class="btn" style="background: var(--danger); color:white; margin-top:20px" onclick="clearAll()">Monat zurücksetzen</button>
+        <button class="btn" style="background:none; color:var(--secondary-text)" onclick="toggleModal(false)">Schließen</button>
     </div>
 </div>
 
@@ -127,108 +121,92 @@
     window.onload = () => {
         const months = ["Januar","Februar","März","April","Mai","Juni","Juli","August","September","Oktober","November","Dezember"];
         document.getElementById('currentMonth').value = months[new Date().getMonth()];
-        
-        // Theme laden
-        if(localStorage.getItem('theme') === 'dark') toggleTheme(true);
+        if(localStorage.getItem('theme') === 'dark') document.body.setAttribute('data-theme', 'dark');
         loadFromStorage();
     };
 
-    function toggleModal(show) {
-        document.getElementById('settings-modal').style.display = show ? 'flex' : 'none';
-    }
+    function toggleModal(show) { document.getElementById('settings-modal').style.display = show ? 'flex' : 'none'; }
 
-    function toggleTheme(init = false) {
+    function toggleTheme() {
         const body = document.body;
-        const current = body.getAttribute('data-theme');
-        const next = current === 'dark' ? 'light' : 'dark';
-        
-        if(!init) body.setAttribute('data-theme', next);
-        else body.setAttribute('data-theme', 'dark');
-        
-        const isDark = body.getAttribute('data-theme') === 'dark';
-        localStorage.setItem('theme', isDark ? 'dark' : 'light');
-        document.getElementById('theme-toggle').innerText = "Dark Mode: " + (isDark ? "AN" : "AUS");
-        document.getElementById('theme-color-meta').setAttribute('content', isDark ? '#121212' : '#1a73e8');
+        const next = body.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+        body.setAttribute('data-theme', next);
+        localStorage.setItem('theme', next);
+        document.getElementById('theme-color-meta').setAttribute('content', next === 'dark' ? '#121212' : '#1a73e8');
     }
 
-    function calculate() {
-        const start = parseFloat(document.getElementById('startBudget').value) || 0;
-        const amounts = document.querySelectorAll('.amount');
-        let total = 0;
-        amounts.forEach(i => total += parseFloat(i.value) || 0);
-        
-        const rem = start - total;
-        document.getElementById('remaining').innerText = rem.toFixed(2);
-        
-        // Balken berechnen
-        const bar = document.getElementById('progress-bar');
-        let percent = start > 0 ? (rem / start) * 100 : 0;
-        percent = Math.max(0, Math.min(100, percent)); // Zwischen 0 und 100 halten
-        
-        bar.style.width = percent + "%";
-        
-        // Farbe des Balkens & Textes ändern
-        if (percent > 50) bar.style.background = "#34a853"; // Grün
-        else if (percent > 15) bar.style.background = "#fbbc04"; // Gelb
-        else bar.style.background = "#d93025"; // Rot
-        
-        document.getElementById('remaining').style.color = rem < 0 ? "#d93025" : "inherit";
-        saveToStorage();
-    }
-
-    function addNewField(desc = "", val = "") {
+    function addRow(containerId, desc = "", val = "") {
         const div = document.createElement('div');
-        div.className = 'expense-row';
+        div.className = 'row';
         div.innerHTML = `<input type="text" placeholder="Bezeichnung" class="desc" value="${desc}" oninput="calculate()">
                          <input type="number" placeholder="€" class="amount" value="${val}" oninput="calculate()">
                          <button class="btn-delete" onclick="this.parentElement.remove();calculate();">✕</button>`;
-        document.getElementById('expenseList').appendChild(div);
+        document.getElementById(containerId).appendChild(div);
+        if(!desc && !val) calculate();
+    }
+
+    function calculate() {
+        let inc = 0, exp = 0;
+        document.querySelectorAll('#incomeList .amount').forEach(i => inc += parseFloat(i.value) || 0);
+        document.querySelectorAll('#expenseList .amount').forEach(i => exp += parseFloat(i.value) || 0);
+        
+        const rem = inc - exp;
+        document.getElementById('totalInc').innerText = inc.toFixed(2);
+        document.getElementById('totalExp').innerText = exp.toFixed(2);
+        document.getElementById('remaining').innerText = rem.toFixed(2);
+        
+        const bar = document.getElementById('progress-bar');
+        let percent = inc > 0 ? (rem / inc) * 100 : 0;
+        percent = Math.max(0, Math.min(100, percent));
+        bar.style.width = percent + "%";
+        
+        if (percent > 50) bar.style.background = "var(--success)";
+        else if (percent > 15) bar.style.background = "#fbbc04";
+        else bar.style.background = "var(--danger)";
+        
+        document.getElementById('resBox').style.background = rem < 0 ? "var(--danger)" : "var(--primary)";
+        saveToStorage();
     }
 
     function saveToStorage() {
         const month = document.getElementById('currentMonth').value;
-        const expenses = [];
-        document.querySelectorAll('.expense-row').forEach(row => {
-            expenses.push({ t: row.querySelector('.desc').value, v: row.querySelector('.amount').value });
-        });
-        const data = JSON.parse(localStorage.getItem('budget_data_v4') || "{}");
-        data[month] = { budget: document.getElementById('startBudget').value, list: expenses };
-        localStorage.setItem('budget_data_v4', JSON.stringify(data));
+        const getItems = (id) => Array.from(document.querySelectorAll(`#${id} .row`)).map(r => ({
+            t: r.querySelector('.desc').value, v: r.querySelector('.amount').value
+        }));
+        const data = JSON.parse(localStorage.getItem('budget_data_v5') || "{}");
+        data[month] = { inc: getItems('incomeList'), exp: getItems('expenseList') };
+        localStorage.setItem('budget_data_v5', JSON.stringify(data));
     }
 
     function loadFromStorage() {
         const month = document.getElementById('currentMonth').value;
-        const data = JSON.parse(localStorage.getItem('budget_data_v4') || "{}")[month];
-        const list = document.getElementById('expenseList');
-        list.innerHTML = '<label>Ausgaben</label>';
+        const data = JSON.parse(localStorage.getItem('budget_data_v5') || "{}")[month];
+        document.getElementById('incomeList').innerHTML = "";
+        document.getElementById('expenseList').innerHTML = "";
         if (data) {
-            document.getElementById('startBudget').value = data.budget;
-            if(data.list.length > 0) data.list.forEach(e => addNewField(e.t, e.v));
-            else addNewField();
+            data.inc.forEach(e => addRow('incomeList', e.t, e.v));
+            data.exp.forEach(e => addRow('expenseList', e.t, e.v));
         } else {
-            document.getElementById('startBudget').value = "";
-            addNewField();
+            addRow('incomeList'); addRow('expenseList');
         }
         calculate();
     }
 
     function exportData() {
         const month = document.getElementById('currentMonth').value;
-        const start = document.getElementById('startBudget').value || 0;
-        const rest = document.getElementById('remaining').innerText;
-        let text = `###CONFIG|${month}|${start}###\n`;
-        text += `BERICHT: ${month}\n-----------------\n`;
-        document.querySelectorAll('.expense-row').forEach(row => {
-            const t = row.querySelector('.desc').value || "Unbekannt";
-            const v = row.querySelector('.amount').value || 0;
-            text += `${t.padEnd(15)}: ${v} € #DATA:${t};${v}\n`;
+        let text = `###CONFIG_V5|${month}###\n`;
+        text += `EINNAHMEN:\n`;
+        document.querySelectorAll('#incomeList .row').forEach(r => {
+            text += `${r.querySelector('.desc').value};${r.querySelector('.amount').value} #INC\n`;
         });
-        text += `-----------------\nREST: ${rest} €`;
-        
+        text += `AUSGABEN:\n`;
+        document.querySelectorAll('#expenseList .row').forEach(r => {
+            text += `${r.querySelector('.desc').value};${r.querySelector('.amount').value} #EXP\n`;
+        });
         const blob = new Blob(["\uFEFF" + text], { type: 'text/plain;charset=utf-8' });
         const a = document.createElement('a');
         a.href = URL.createObjectURL(blob);
-        a.download = `Budget_${month}.txt`;
+        a.download = `Budget_V5_${month}.txt`;
         a.click();
     }
 
@@ -238,22 +216,20 @@
         const reader = new FileReader();
         reader.onload = function(e) {
             const lines = e.target.result.replace(/^\uFEFF/, "").split('\n');
-            const configLine = lines.find(l => l.includes("###CONFIG"));
-            if (!configLine) { alert("Format nicht erkannt!"); return; }
-            const config = configLine.replace(/###/g, "").split('|');
-            document.getElementById('currentMonth').value = config[1];
-            document.getElementById('startBudget').value = config[2];
-            const list = document.getElementById('expenseList');
-            list.innerHTML = '<label>Ausgaben</label>';
+            if (!lines[0].includes("###CONFIG_V5")) { alert("Falsches Format!"); return; }
+            document.getElementById('currentMonth').value = lines[0].split('|')[1].replace('###','');
+            document.getElementById('incomeList').innerHTML = "";
+            document.getElementById('expenseList').innerHTML = "";
             lines.forEach(l => {
-                if (l.includes("#DATA:")) {
-                    const d = l.split("#DATA:")[1].split(';');
-                    addNewField(d[0], d[1]);
+                if (l.includes("#INC")) {
+                    const d = l.split("#INC")[0].split(';');
+                    addRow('incomeList', d[0], d[1]);
+                } else if (l.includes("#EXP")) {
+                    const d = l.split("#EXP")[0].split(';');
+                    addRow('expenseList', d[0], d[1]);
                 }
             });
-            calculate();
-            toggleModal(false);
-            alert("Import für " + config[1] + " fertig!");
+            calculate(); toggleModal(false);
         };
         reader.readAsText(file);
     }
@@ -261,9 +237,9 @@
     function clearAll() {
         if (confirm("Monat wirklich leeren?")) {
             const month = document.getElementById('currentMonth').value;
-            const data = JSON.parse(localStorage.getItem('budget_data_v4') || "{}");
+            const data = JSON.parse(localStorage.getItem('budget_data_v5') || "{}");
             delete data[month];
-            localStorage.setItem('budget_data_v4', JSON.stringify(data));
+            localStorage.setItem('budget_data_v5', JSON.stringify(data));
             location.reload();
         }
     }
