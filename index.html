@@ -173,29 +173,65 @@
 }
 
     function importData(event) {
-        const file = event.target.files[0];
-        if (!file) return;
-        const reader = new FileReader();
-        reader.onload = function(e) {
-            const lines = e.target.result.replace(/^\uFEFF/, "").split('\n');
-            if (!lines[0].startsWith("BUDGET_DATA")) { alert("Ungültige Datei!"); return; }
-            
-            const header = lines[0].split('|');
-            document.getElementById('currentMonth').value = header[1];
-            document.getElementById('startBudget').value = header[2];
-            
-            const list = document.getElementById('expenseList');
-            list.innerHTML = '<label>Ausgaben</label>';
-            for (let i = 1; i < lines.length; i++) {
-                if (lines[i].trim() === "") continue;
-                const parts = lines[i].split(';');
-                addNewField(parts[0], parts[1]);
+    const file = event.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    
+    reader.onload = function(e) {
+        // 1. Inhalt lesen und das unsichtbare BOM-Zeichen sowie Leerzeichen am Anfang entfernen
+        const content = e.target.result.replace(/^\uFEFF/, "").trim();
+        const lines = content.split('\n');
+        
+        // 2. Suche nach der Konfigurationszeile (egal ob sie in Zeile 1 oder 2 steht)
+        const configLine = lines.find(line => line.includes("###CONFIG") || line.includes("BUDGET_DATA"));
+        
+        if (!configLine) { 
+            alert("Ungültige Datei: Keine Budget-Konfiguration gefunden!"); 
+            return; 
+        }
+        
+        // 3. Daten extrahieren
+        // Wir splitten entweder an | oder an ###
+        const parts = configLine.replace(/###/g, "").split('|');
+        // parts[0] ist der Marker, parts[1] der Monat, parts[2] das Budget
+        
+        const month = parts[1].trim();
+        const startAmount = parts[2].trim();
+
+        document.getElementById('currentMonth').value = month;
+        document.getElementById('startBudget').value = startAmount;
+        
+        const list = document.getElementById('expenseList');
+        list.innerHTML = '<label>Ausgaben</label>';
+
+        // 4. Suche nach den versteckten Datenzeilen (#DATA:)
+        let entriesFound = 0;
+        lines.forEach(line => {
+            if (line.includes("#DATA:")) {
+                const raw = line.split("#DATA:")[1];
+                const dataParts = raw.split(';');
+                if (dataParts.length >= 2) {
+                    addNewField(dataParts[0].trim(), dataParts[1].trim());
+                    entriesFound++;
+                }
             }
-            calculate();
-            alert("Daten für " + header[1] + " erfolgreich importiert!");
-        };
-        reader.readAsText(file);
-    }
+        });
+
+        // Falls keine #DATA Zeilen gefunden wurden (altes Format), versuchen wir das Semikolon-Format
+        if (entriesFound === 0) {
+            for (let i = 1; i < lines.length; i++) {
+                if (lines[i].includes(";") && !lines[i].includes("==")) {
+                    const parts = lines[i].split(';');
+                    addNewField(parts[0].trim(), parts[1].trim());
+                }
+            }
+        }
+
+        calculate();
+        alert("Daten für " + month + " erfolgreich importiert!");
+    };
+    reader.readAsText(file);
+}
 
     function clearAll() {
         if (confirm("Diesen Monat wirklich zurücksetzen?")) {
