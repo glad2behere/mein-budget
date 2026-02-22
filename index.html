@@ -227,26 +227,31 @@
     }
 
     // TXT Export
-    function exportData() {
-        const fileName = prompt("Name der Datei?", "Budget_Export");
-        if (!fileName) return;
+   function exportData() {
+    const fileName = prompt("Name der Datei?", "Budget_Export");
+    if (!fileName) return;
 
-        const start = document.getElementById('startBudget').value || 0;
-        const rest = document.getElementById('remaining').innerText;
-        const descs = document.querySelectorAll('.desc');
-        const amounts = document.querySelectorAll('.amount');
+    const start = document.getElementById('startBudget').value || 0;
+    const rest = document.getElementById('remaining').innerText;
+    const descs = document.querySelectorAll('.desc');
+    const amounts = document.querySelectorAll('.amount');
 
-        let text = `MEIN BUDGET\n===========\n\nStart: ${start} €\n-----------\n`;
-        descs.forEach((d, i) => {
-            text += `${(d.value || "Ausgabe").padEnd(15)}: ${amounts[i].value || 0} €\n`;
-        });
-        text += `-----------\nREST:  ${rest} €`;
+    let text = `MEIN BUDGET\n===========\n\nStart: ${start} €\n-----------\n`;
+    descs.forEach((d, i) => {
+        text += `${(d.value || "Ausgabe").padEnd(15)}: ${amounts[i].value || 0} €\n`;
+    });
+    text += `-----------\nREST:  ${rest} €`;
 
-        const blob = new Blob([text], { type: 'text/plain' });
-        const a = document.createElement('a');
-        a.href = URL.createObjectURL(blob);
-        a.download = fileName + ".txt";
-        a.click();
+    // DER TRICK: Wir fügen das UTF-8 BOM (\uFEFF) am Anfang hinzu
+    const blob = new Blob(["\uFEFF" + text], { type: 'text/plain;charset=utf-8' });
+    
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = fileName + ".txt";
+    a.click();
+    
+    // Speicher wieder freigeben
+    URL.revokeObjectURL(a.href);
     }
 
     // Reset
