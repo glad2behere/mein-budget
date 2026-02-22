@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Budget Manager Pro CSV</title>
+    <title>Budget Manager Pro 6.0</title>
 
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>💰</text></svg>">
     <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 rx=%2220%22 fill=%22%231a73e8%22/><text xml:space=%22preserve%22 text-anchor=%22middle%22 font-family=%22sans-serif%22 font-size=%2260%22 y=%2272%22 x=%2250%22 fill=%22white%22 font-weight=%22bold%22>€</text></svg>">
@@ -43,6 +43,9 @@
         .row { display: flex; gap: 8px; margin-bottom: 10px; align-items: center; }
         .row input[type="text"] { flex: 3; }
         .row input[type="number"] { flex: 2; }
+        
+        /* Checkbox Styling */
+        .recurring-check { width: 20px; height: 20px; cursor: pointer; accent-color: var(--primary); }
 
         .btn-delete { background: var(--danger); color: white; border: none; border-radius: 8px; padding: 10px; cursor: pointer; font-weight: bold; }
 
@@ -59,6 +62,7 @@
 
         #fileImport { display: none; }
         hr { border: 0; border-top: 1px solid var(--input-border); margin: 20px 0; }
+        .small-hint { font-size: 0.7rem; color: var(--secondary-text); margin-top: -8px; margin-bottom: 8px; }
     </style>
 </head>
 <body>
@@ -80,12 +84,14 @@
     </div>
 
     <label>Einnahmen</label>
+    <p class="small-hint">Check setzen für monatlich wiederkehrend</p>
     <div id="incomeList"></div>
     <button class="btn btn-add-inc" onclick="addRow('incomeList')">+ Einnahme hinzufügen</button>
 
     <hr>
 
     <label>Ausgaben</label>
+    <p class="small-hint">Check setzen für monatlich wiederkehrend</p>
     <div id="expenseList"></div>
     <button class="btn btn-add-exp" onclick="addRow('expenseList')">+ Ausgabe hinzufügen</button>
 
@@ -94,8 +100,8 @@
     </div>
 
     <div class="summary-box">
-        <span>Einnahmen: <b id="totalInc">0.00</b> €</span>
-        <span>Ausgaben: <b id="totalExp">0.00</b> €</span>
+        <span>In: <b id="totalInc">0.00</b> €</span>
+        <span>Out: <b id="totalExp">0.00</b> €</span>
     </div>
 
     <div class="result-box" id="resBox">
@@ -110,7 +116,7 @@
         <button class="btn" style="background:var(--secondary-btn); color:var(--text)" onclick="toggleTheme()">Theme wechseln</button>
         <button class="btn" style="background: #34a853; color:white;" onclick="exportCSV()">Als CSV exportieren</button>
         <button class="btn" style="background: #fbbc04; color:black;" onclick="document.getElementById('fileImport').click()">CSV Importieren</button>
-        <input type="file" id="fileImport" accept=".txt,.csv" onchange="importCSV(event)">
+        <input type="file" id="fileImport" accept=".csv" onchange="importCSV(event)">
         <button class="btn" style="background: var(--danger); color:white; margin-top:20px" onclick="clearAll()">Monat zurücksetzen</button>
         <button class="btn" style="background:none; color:var(--secondary-text)" onclick="toggleModal(false)">Schließen</button>
     </div>
@@ -134,14 +140,16 @@
         document.getElementById('theme-color-meta').setAttribute('content', next === 'dark' ? '#121212' : '#1a73e8');
     }
 
-    function addRow(containerId, desc = "", val = "") {
+    function addRow(containerId, desc = "", val = "", recurring = false) {
         const div = document.createElement('div');
         div.className = 'row';
-        div.innerHTML = `<input type="text" placeholder="Bezeichnung" class="desc" value="${desc}" oninput="calculate()">
-                         <input type="number" placeholder="€" class="amount" value="${val}" oninput="calculate()">
-                         <button class="btn-delete" onclick="this.parentElement.remove();calculate();">✕</button>`;
+        div.innerHTML = `
+            <input type="checkbox" class="recurring-check" ${recurring ? 'checked' : ''} onchange="calculate()" title="Monatlich wiederholen">
+            <input type="text" placeholder="Was?" class="desc" value="${desc}" oninput="calculate()">
+            <input type="number" placeholder="€" class="amount" value="${val}" oninput="calculate()">
+            <button class="btn-delete" onclick="this.parentElement.remove();calculate();">✕</button>`;
         document.getElementById(containerId).appendChild(div);
-        if(!desc && !val) calculate();
+        calculate();
     }
 
     function calculate() {
@@ -170,93 +178,95 @@
     function saveToStorage() {
         const month = document.getElementById('currentMonth').value;
         const getItems = (id) => Array.from(document.querySelectorAll(`#${id} .row`)).map(r => ({
-            t: r.querySelector('.desc').value, v: r.querySelector('.amount').value
+            t: r.querySelector('.desc').value, 
+            v: r.querySelector('.amount').value,
+            r: r.querySelector('.recurring-check').checked
         }));
-        const data = JSON.parse(localStorage.getItem('budget_csv_v1') || "{}");
+        
+        // Aktuelle Monatsdaten
+        const data = JSON.parse(localStorage.getItem('budget_v6_data') || "{}");
         data[month] = { inc: getItems('incomeList'), exp: getItems('expenseList') };
-        localStorage.setItem('budget_csv_v1', JSON.stringify(data));
+        localStorage.setItem('budget_v6_data', JSON.stringify(data));
+
+        // Globale Wiederkehrende Posten extra sichern
+        const recurring = { inc: [], exp: [] };
+        data[month].inc.forEach(i => { if(i.r) recurring.inc.push(i); });
+        data[month].exp.forEach(e => { if(e.r) recurring.exp.push(e); });
+        localStorage.setItem('budget_v6_recurring', JSON.stringify(recurring));
     }
 
     function loadFromStorage() {
         const month = document.getElementById('currentMonth').value;
-        const data = JSON.parse(localStorage.getItem('budget_csv_v1') || "{}")[month];
+        const allData = JSON.parse(localStorage.getItem('budget_v6_data') || "{}");
+        const data = allData[month];
+        
         document.getElementById('incomeList').innerHTML = "";
         document.getElementById('expenseList').innerHTML = "";
-        if (data) {
-            data.inc.forEach(e => addRow('incomeList', e.t, e.v));
-            data.exp.forEach(e => addRow('expenseList', e.t, e.v));
+
+        if (data && (data.inc.length > 0 || data.exp.length > 0)) {
+            // Lade vorhandene Monatsdaten
+            data.inc.forEach(e => addRow('incomeList', e.t, e.v, e.r));
+            data.exp.forEach(e => addRow('expenseList', e.t, e.v, e.r));
         } else {
-            addRow('incomeList'); addRow('expenseList');
+            // Neuer Monat: Lade wiederkehrende Posten aus dem Speicher
+            const recurring = JSON.parse(localStorage.getItem('budget_v6_recurring') || '{"inc":[],"exp":[]}');
+            if (recurring.inc.length > 0 || recurring.exp.length > 0) {
+                recurring.inc.forEach(e => addRow('incomeList', e.t, e.v, true));
+                recurring.exp.forEach(e => addRow('expenseList', e.t, e.v, true));
+            } else {
+                addRow('incomeList'); addRow('expenseList');
+            }
         }
         calculate();
     }
 
-    // EXPORT ALS CSV
     function exportCSV() {
         const month = document.getElementById('currentMonth').value;
-        // Metadaten für App-Import in der ersten Zeile
-        let csvContent = `###APP_DATA|${month}###\n`;
-        // CSV Header für Excel
-        csvContent += `Typ;Bezeichnung;Betrag\n`;
+        let csv = `###V6|${month}###\nTyp;Bezeichnung;Betrag;Wiederkehrend\n`;
+        const collect = (id, label) => {
+            document.querySelectorAll(`#${id} .row`).forEach(r => {
+                csv += `${label};${r.querySelector('.desc').value};${r.querySelector('.amount').value};${r.querySelector('.recurring-check').checked ? 'JA' : 'NEIN'}\n`;
+            });
+        };
+        collect('incomeList', 'Einnahme'); collect('expenseList', 'Ausgabe');
         
-        document.querySelectorAll('#incomeList .row').forEach(r => {
-            csvContent += `Einnahme;${r.querySelector('.desc').value || "Unbenannt"};${r.querySelector('.amount').value || 0}\n`;
-        });
-        document.querySelectorAll('#expenseList .row').forEach(r => {
-            csvContent += `Ausgabe;${r.querySelector('.desc').value || "Unbenannt"};${r.querySelector('.amount').value || 0}\n`;
-        });
+        csv += `\nZUSAMMENFASSUNG;;;\nEinnahmen;;${document.getElementById('totalInc').innerText};\n`;
+        csv += `Ausgaben;;${document.getElementById('totalExp').innerText};\nRest;;${document.getElementById('remaining').innerText};\n`;
 
-        const blob = new Blob(["\uFEFF" + csvContent], { type: 'text/csv;charset=utf-8' });
+        const blob = new Blob(["\uFEFF" + csv], { type: 'text/csv;charset=utf-8' });
         const a = document.createElement('a');
         a.href = URL.createObjectURL(blob);
         a.download = `Budget_${month}.csv`;
         a.click();
     }
 
-    // IMPORT VON CSV
     function importCSV(event) {
         const file = event.target.files[0];
         if (!file) return;
         const reader = new FileReader();
         reader.onload = function(e) {
-            const content = e.target.result.replace(/^\uFEFF/, "").trim();
-            const lines = content.split('\n');
-            
-            if (!lines[0].includes("###APP_DATA")) {
-                alert("Keine gültige Budget-CSV!");
-                return;
-            }
-
-            const month = lines[0].split('|')[1].replace('###','');
-            document.getElementById('currentMonth').value = month;
+            const lines = e.target.result.replace(/^\uFEFF/, "").split('\n');
+            if (!lines[0].includes("###V6")) { alert("Falsches Format!"); return; }
             document.getElementById('incomeList').innerHTML = "";
             document.getElementById('expenseList').innerHTML = "";
-
-            // Ab Zeile 3 starten (Zeile 1=Meta, Zeile 2=Header)
-            for (let i = 2; i < lines.length; i++) {
-                const parts = lines[i].split(';');
-                if (parts.length < 3) continue;
-                
-                const typ = parts[0].trim();
-                const desc = parts[1].trim();
-                const val = parts[2].trim();
-
-                if (typ === "Einnahme") addRow('incomeList', desc, val);
-                else if (typ === "Ausgabe") addRow('expenseList', desc, val);
-            }
-            calculate();
-            toggleModal(false);
-            alert("Daten für " + month + " importiert!");
+            lines.forEach((l, i) => {
+                if (i < 2) return;
+                const p = l.split(';');
+                if (p.length < 4) return;
+                const target = p[0] === 'Einnahme' ? 'incomeList' : 'expenseList';
+                addRow(target, p[1], p[2], p[3].trim() === 'JA');
+            });
+            calculate(); toggleModal(false);
         };
         reader.readAsText(file);
     }
 
     function clearAll() {
-        if (confirm("Monat wirklich leeren?")) {
+        if (confirm("Diesen Monat wirklich leeren? Wiederkehrende Posten bleiben im System.")) {
             const month = document.getElementById('currentMonth').value;
-            const data = JSON.parse(localStorage.getItem('budget_csv_v1') || "{}");
+            const data = JSON.parse(localStorage.getItem('budget_v6_data') || "{}");
             delete data[month];
-            localStorage.setItem('budget_csv_v1', JSON.stringify(data));
+            localStorage.setItem('budget_v6_data', JSON.stringify(data));
             location.reload();
         }
     }
